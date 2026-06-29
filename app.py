@@ -45,17 +45,17 @@ st.markdown("""
     }
     
     .lyrics-scroll-box {
-        background-color: #111111;
-        color: #ffffff;
-        padding: 12px;
+        background-color: #000000;
+        color: #00ffcc; /* 가사 네온 민트 컬러 */
+        padding: 15px;
         border-radius: 8px;
         font-family: 'Malgun Gothic', sans-serif;
-        max-height: 110px;
+        max-height: 220px; /* 🎚️ 기존 110px에서 220px로 확장하여 더 많은 가사가 한눈에 보이도록 변경 */
         overflow-y: auto;
         text-align: center;
-        line-height: 1.5em;
-        font-size: 12px;
-        border: 1px solid #333;
+        line-height: 1.8em;
+        font-size: 13px;
+        border: 1px solid #30363d;
     }
     
     /* 🔥 카카오톡/스마트폰 스크린 스타일의 우측 챗 프레임 박스 */
