@@ -1,3 +1,19 @@
+import os
+import json
+from google import genai
+from google.genai import types
+
+def dig_music_with_gemini(user_prompt):
+    """
+    유저의 입력을 받아 Gemini가 곡 정보, 장르, 실제 전체 가사를 정형화된 JSON으로 반환합니다.
+    """
+    try:
+        # 환경 변수 혹은 주입된 시스템 키로부터 Gemini 클라이언트 초기화
+        client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+    except Exception as e:
+        print(f"Gemini 클라이언트 초기화 실패: {e}")
+        return None
+
     prompt_instruction = f"""
     당신은 전세계의 모든 음악 장르와 히스토리를 꿰뚫고 있는 음악 디깅 AI 에이전트입니다.
     유저가 원하는 무드, 상황, 장르를 말하면 그에 완벽히 부합하는 '실제 존재하는 명곡 1곡'과 '연관 추천곡 3곡'을 추천해야 합니다.
@@ -17,3 +33,14 @@
         "playlist_keywords": ["연관 추천 곡 검색 키워드 1", "연관 추천 곡 검색 키워드 2", "연관 추천 곡 검색 키워드 3"]
     }}
     """
+
+    try:
+        response = client.models.generate_content(
+            model='gemini-2.5-flash',
+            contents=prompt_instruction,
+            config=types.GenerateContentConfig(response_mime_type="application/json"),
+        )
+        return json.loads(response.text)
+    except Exception as e:
+        print(f"Gemini 디깅 실행 에러: {e}")
+        return None
