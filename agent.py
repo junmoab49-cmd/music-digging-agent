@@ -1,18 +1,4 @@
-import os
-import json
-from google import genai
-from google.genai import types
-
-def dig_music_with_gemini(user_prompt):
-    """
-    유저의 입력을 받아 Gemini가 곡 정보, 장르, 실제 가사를 정형화된 JSON으로 반환합니다.
-    """
-    try:
-        # 환경 변수 혹은 주입된 시스템 키로부터 Gemini 클라이언트 초기화
-        client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
-    except Exception as e:
-        print(f"Gemini 클라이언트 초기화 실패: {e}")
-        return None
+# agent.py 파일 내의 prompt_instruction 부분을 아래 내용으로 교체하세요.
 
     prompt_instruction = f"""
     당신은 전세계의 모든 음악 장르와 히스토리를 꿰뚫고 있는 음악 디깅 AI 에이전트입니다.
@@ -28,19 +14,8 @@ def dig_music_with_gemini(user_prompt):
         "featuring": "피처링 참여 가수가 있다면 기입 (없다면 '없음')",
         "year": "실제 발매 년도 (예: 2022년)",
         "genre": "디깅된 정밀 세부 장르 이름 (예: Neo-Soul, City Pop, Lofi Chill)",
-        "lyrics": ["1마디 실제 가사", "2마디 실제 가사", "3마디 실제 가사", "4마디 실제 가사", "5마디 실제 가사", "6마디 실제 가사"],
-        "search_keyword": "유튜브에서 해당 음악의 고화질 음원/영상을 찾기 위한 가장 정확한 키워드 (예: 뉴진스 Ditto 오피셜)",
+        "lyrics": ["노래의 도입부 실제 가사 1줄", "실제 가사 2줄", "실제 가사 3줄", "...", "노래가 끝날 때까지의 모든 실제 가사 줄들을 생략 없이 배열에 전부 담으세요"],
+        "search_keyword": "유튜브에서 해당 음악의 고화질 음원/영상을 찾기 위한 가장 정확한 키워드",
         "playlist_keywords": ["연관 추천 곡 검색 키워드 1", "연관 추천 곡 검색 키워드 2", "연관 추천 곡 검색 키워드 3"]
     }}
     """
-
-    try:
-        response = client.models.generate_content(
-            model='gemini-2.5-flash',
-            contents=prompt_instruction,
-            config=types.GenerateContentConfig(response_mime_type="application/json"),
-        )
-        return json.loads(response.text)
-    except Exception as e:
-        print(f"Gemini 디깅 실행 에러: {e}")
-        return None
