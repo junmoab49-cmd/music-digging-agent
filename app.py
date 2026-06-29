@@ -8,45 +8,66 @@ from agent import dig_music_with_gemini
 
 load_dotenv()
 
-# 1. 페이지 레이아웃 설정 (넓은 화면을 활용하기 위해 'wide'로 설정)
+# 1. 페이지 레이아웃 설정 (넓은 화면 및 타이틀 최적화)
 st.set_page_config(page_title="Music Digging AI Agent", page_icon="🎧", layout="wide")
 
-# CSS를 활용해 스크롤 없이 한눈에 들어오도록 컴팩트화
+# CSS를 활용해 전체 화면 스크롤을 완전히 없애고(고정) 좌우 독립 스크롤 구현
 st.markdown("""
     <style>
-    /* 상하 여백을 최소화하여 한 화면에 다 담기도록 조절 */
-    .block-container {
-        padding-top: 1.5rem !important;
-        padding-bottom: 1.5rem !important;
+    /* 1. 웹페이지 전체 화면 스크롤 제거 (가장 중요) */
+    html, body, [data-testid="stAppViewContainer"] {
+        overflow: hidden !important;
+        height: 100vh !important;
     }
+    
+    /* 상단 기본 헤더/여백 타이트하게 조절 */
+    .block-container {
+        padding-top: 1rem !important;
+        padding-bottom: 0rem !important;
+        max-height: 100vh !important;
+    }
+    
+    /* 2. 좌측 음악 허브 전용 컨테이너 (스크롤 없이 고정되도록 유도) */
+    .left-hub-box {
+        max-height: 85vh;
+        overflow-y: auto;
+        padding-right: 5px;
+    }
+    
     /* 음악 정보 카드 컴팩트 디자인 */
     .music-card {
         background-color: #f0f2f6;
-        padding: 12px;
-        border-radius: 10px;
-        margin-bottom: 10px;
+        padding: 10px;
+        border-radius: 8px;
+        margin-bottom: 8px;
         color: #111111;
-        font-size: 14px;
+        font-size: 13px;
     }
-    /* 가사 박스 높이를 줄여 한눈에 보이게 고정 */
+    
+    /* 가사 박스 높이를 고정하여 스크롤 유도 */
     .lyrics-scroll-box {
         background-color: #111111;
         color: #ffffff;
-        padding: 12px;
-        border-radius: 8px;
+        padding: 10px;
+        border-radius: 6px;
         font-family: 'Malgun Gothic', sans-serif;
-        max-height: 110px;
+        max-height: 100px;
         overflow-y: auto;
         text-align: center;
-        line-height: 1.6em;
-        font-size: 13px;
+        line-height: 1.5em;
+        font-size: 12px;
         border: 1px solid #333;
     }
-    /* 대화창 영역 스크롤 고정 및 높이 확보 */
-    .chat-container {
-        max-height: 520px;
+    
+    /* 3. 우측 독립형 챗 UI 컨테이너 (대화창만 따로 스크롤) */
+    .chat-scroll-area {
+        height: 62vh;
         overflow-y: auto;
-        padding-right: 10px;
+        border: 1px solid #eee;
+        border-radius: 8px;
+        padding: 10px;
+        background-color: #fafafa;
+        margin-bottom: 10px;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -88,65 +109,66 @@ def get_youtube_video_via_api(keyword):
     return None
 
 # =========================================================
-# 🏛️ 레이아웃 좌우 분할 (좌측: 음악 플레이어 허브 / 우측: AI 대화창)
+# 🏛️ 뷰포트 고정형 좌우 레이아웃 (5:5 비율 분할)
 # =========================================================
-left_col, right_col = st.columns([1, 1])  # 5:5 비율로 균형 있게 분할
+left_col, right_col = st.columns([1, 1])
 
-# --- 1. 좌측 영역: 음악 및 UI (스크롤 없이 한눈에 보기) ---
+# --- 1. 좌측 영역: 음악 및 UI 허브 (전체 화면 스크롤 방지 래퍼 적용) ---
 with left_col:
+    st.markdown('<div class="left-hub-box">', unsafe_allow_html=True)
     st.subheader("🎧 Now Playing Hub")
     track = st.session_state.current_track
     
     if track:
-        # 앨범아트와 곡 메타데이터를 컴팩트하게 가로 배정
         meta_col1, meta_col2 = st.columns([2, 3])
         with meta_col1:
             st.image(track["album_art"], use_container_width=True)
         with meta_col2:
             st.markdown(f"""
                 <div class="music-card">
-                    <h4 style='margin-top:0px; margin-bottom:4px; color:#FF4B4B;'>🎵 {track['title']}</h4>
-                    <p style='margin:2px 0;'><b>🎤</b> {track['artist']}</p>
-                    <p style='margin:2px 0;'><b>📅</b> {track['year']}</p>
-                    <p style='margin:2px 0;'><b>🏷️</b> {track['genre']}</p>
+                    <h5 style='margin-top:0px; margin-bottom:4px; color:#FF4B4B;'>🎵 {track['title']}</h5>
+                    <p style='margin:1px 0;'><b>🎤</b> {track['artist']}</p>
+                    <p style='margin:1px 0;'><b>📅</b> {track['year']}</p>
+                    <p style='margin:1px 0;'><b>🏷️</b> {track['genre']}</p>
                 </div>
             """, unsafe_allow_html=True)
         
-        # 유튜브 미디어 플레이어 (크기 자동 최적화)
+        # 미디어 플레이어 크기 고정 배치
         st.video(f"https://www.youtube.com/watch?v={track['youtube_id']}")
         
-        # 정적 가사 뷰어 (컴팩트 스크롤 박스)
+        # 가사 뷰어
         lyrics_html = "".join([f"<p style='margin:2px 0;'>{line}</p>" for line in track["lyrics"]])
         st.markdown(f"<div class='lyrics-scroll-box'>{lyrics_html}</div>", unsafe_allow_html=True)
         
-        # 연관 추천곡 접이식 메뉴 (기본 닫힘 상태로 공간 절약)
-        with st.expander("🗂️ 추천 리스트 및 YouTube 플레이리스트 담기", expanded=False):
+        # 추천곡 접이식 레이아웃
+        with st.expander("🗂️ 추천 리스트 및 단축키", expanded=False):
             for p_song in track["playlist"]:
                 st.markdown(f"▶️ [{p_song['title']}]({f'https://www.youtube.com/watch?v={p_song['id']}'}) - {p_song['artist']}")
             
             all_ids = [track["youtube_id"]] + [p["id"] for p in track["playlist"]]
             export_url = f"https://www.youtube.com/watch_videos?video_ids={','.join(all_ids)}"
-            st.link_button("🚀 YouTube 재생목록에 생성", export_url, use_container_width=True)
+            st.link_button("🚀 YouTube 재생목록 연동 생성", export_url, use_container_width=True)
     else:
-        st.info("💡 우측 대화창에 원하는 사운드 무드나 상황을 입력하시면, 이 자리에 스크롤이 필요 없는 컴팩트 음악 플레이어 허브가 생성됩니다.")
+        st.info("💡 우측 챗봇에게 음악 무드나 상황을 던져보세요! 이 자리에 한눈에 들어오는 컴팩트 음악 재생 허브가 박히게 됩니다.")
+    st.markdown('</div>', unsafe_allow_html=True)
 
-# --- 2. 우측 영역: Gemini AI 대화창 ---
+# --- 2. 우측 영역: Gemini 독립형 챗 UI (대화창만 따로 스크롤) ---
 with right_col:
-    st.subheader("🤖 AI 에이전트 대화 창")
+    st.subheader("💬 Gemini Music Digging Agent")
     
-    # 대화 내용들을 스크롤 가능한 영역 안에 격리
-    st.markdown('<div class="chat-container">', unsafe_allow_html=True)
+    # 별도 스크롤 박스로 대화 내용들만 가둠
+    st.markdown('<div class="chat-scroll-area">', unsafe_allow_html=True)
     for msg in st.session_state.messages:
         with st.chat_message(msg["role"]):
             st.markdown(msg["content"])
     st.markdown('</div>', unsafe_allow_html=True)
     
-    # 챗 바 하단 고정
+    # 유저 대화창 입력란을 하단에 단독 배치
     if user_input := st.chat_input("원하는 무드, 가사 느낌, 혹은 장르를 입력하세요..."):
         st.session_state.messages.append({"role": "user", "content": user_input})
         st.rerun()
 
-# --- 비동기 트리거 로직 처리 (화면 갱신 후 호출 데이터 매칭) ---
+# --- 비동기 백엔드 오케스트레이션 로직 ---
 if st.session_state.messages[-1]["role"] == "user":
     user_input = st.session_state.messages[-1]["content"]
     
@@ -182,7 +204,7 @@ if st.session_state.messages[-1]["role"] == "user":
                     "playlist": playlist_tracks
                 }
                 
-                reply = f"🤖 **[{ai_data['genre']}]** 무드의 명곡을 디깅했습니다! 좌측 음악 허브 창에서 한눈에 확인해 보세요."
+                reply = f"🤖 **[{ai_data['genre']}]** 무드의 음악을 아카이빙했습니다! 왼쪽 대시보드 허브에서 재생해 보세요."
                 st.session_state.messages.append({"role": "assistant", "content": reply})
                 st.rerun()
     else:
