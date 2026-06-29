@@ -8,50 +8,49 @@ from agent import dig_music_with_gemini
 
 load_dotenv()
 
-# 1. 페이지 레이아웃 설정 (넓은 화면 및 타이틀 최적화)
+# 1. 페이지 레이아웃 설정
 st.set_page_config(page_title="Music Digging AI Agent", page_icon="🎧", layout="wide")
 
-# CSS를 활용해 전체 화면 스크롤을 완전히 없애고(고정) 좌우 독립 스크롤 구현
+# CSS를 활용해 전체 화면 고정 및 스마트폰 형태의 카카오톡 스타일 챗 UI 구현
 st.markdown("""
     <style>
-    /* 1. 웹페이지 전체 화면 스크롤 제거 (가장 중요) */
+    /* 웹페이지 전체 화면 스크롤 제거 */
     html, body, [data-testid="stAppViewContainer"] {
         overflow: hidden !important;
         height: 100vh !important;
+        background-color: #f5f6f7;
     }
     
-    /* 상단 기본 헤더/여백 타이트하게 조절 */
     .block-container {
-        padding-top: 1rem !important;
+        padding-top: 1.5rem !important;
         padding-bottom: 0rem !important;
         max-height: 100vh !important;
     }
     
-    /* 2. 좌측 음악 허브 전용 컨테이너 (스크롤 없이 고정되도록 유도) */
+    /* 좌측 음악 허브 전용 컨테이너 */
     .left-hub-box {
         max-height: 85vh;
         overflow-y: auto;
-        padding-right: 5px;
+        padding-right: 10px;
     }
     
-    /* 음악 정보 카드 컴팩트 디자인 */
     .music-card {
-        background-color: #f0f2f6;
-        padding: 10px;
-        border-radius: 8px;
+        background-color: #ffffff;
+        padding: 12px;
+        border-radius: 10px;
         margin-bottom: 8px;
         color: #111111;
         font-size: 13px;
+        border: 1px solid #e1e4e6;
     }
     
-    /* 가사 박스 높이를 고정하여 스크롤 유도 */
     .lyrics-scroll-box {
         background-color: #111111;
         color: #ffffff;
-        padding: 10px;
-        border-radius: 6px;
+        padding: 12px;
+        border-radius: 8px;
         font-family: 'Malgun Gothic', sans-serif;
-        max-height: 100px;
+        max-height: 110px;
         overflow-y: auto;
         text-align: center;
         line-height: 1.5em;
@@ -59,15 +58,34 @@ st.markdown("""
         border: 1px solid #333;
     }
     
-    /* 3. 우측 독립형 챗 UI 컨테이너 (대화창만 따로 스크롤) */
-    .chat-scroll-area {
-        height: 62vh;
+    /* 🔥 카카오톡/스마트폰 스크린 스타일의 우측 챗 프레임 박스 */
+    .phone-chat-box {
+        border: 2px solid #dcdfe2;
+        border-radius: 24px; /* 꼭짓점이 대폭 둥근 사각형 연출 */
+        padding: 18px;
+        background-color: #bacee0; /* 카카오톡 기본 대화방 느낌의 파스텔 블루 배경 */
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        height: 74vh;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+    
+    /* 챗 박스 내부의 독립형 대화 스크롤 영역 */
+    .chat-scroll-inside {
+        height: 100%;
         overflow-y: auto;
-        border: 1px solid #eee;
-        border-radius: 8px;
-        padding: 10px;
-        background-color: #fafafa;
+        padding-right: 5px;
         margin-bottom: 10px;
+    }
+    
+    /* 스크롤바 디자인 커스텀 (깔끔하게 구현) */
+    ::-webkit-scrollbar {
+        width: 5px;
+    }
+    ::-webkit-scrollbar-thumb {
+        background: #bcc0c4;
+        border-radius: 10px;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -80,7 +98,6 @@ if "messages" not in st.session_state:
 if "current_track" not in st.session_state:
     st.session_state.current_track = None
 
-# 유튜브 Data API v3를 사용한 영상 검색 헬퍼 함수
 def get_youtube_video_via_api(keyword):
     api_key = os.getenv("YOUTUBE_API_KEY")
     if not api_key:
@@ -109,11 +126,11 @@ def get_youtube_video_via_api(keyword):
     return None
 
 # =========================================================
-# 🏛️ 뷰포트 고정형 좌우 레이아웃 (5:5 비율 분할)
+# 🏛️ 레이아웃 좌우 분할 (좌측: 음악 플레이어 허브 / 우측: 카톡 폰 스타일 챗 UI)
 # =========================================================
 left_col, right_col = st.columns([1, 1])
 
-# --- 1. 좌측 영역: 음악 및 UI 허브 (전체 화면 스크롤 방지 래퍼 적용) ---
+# --- 1. 좌측 영역: 음악 및 UI 허브 ---
 with left_col:
     st.markdown('<div class="left-hub-box">', unsafe_allow_html=True)
     st.subheader("🎧 Now Playing Hub")
@@ -133,14 +150,11 @@ with left_col:
                 </div>
             """, unsafe_allow_html=True)
         
-        # 미디어 플레이어 크기 고정 배치
         st.video(f"https://www.youtube.com/watch?v={track['youtube_id']}")
         
-        # 가사 뷰어
         lyrics_html = "".join([f"<p style='margin:2px 0;'>{line}</p>" for line in track["lyrics"]])
         st.markdown(f"<div class='lyrics-scroll-box'>{lyrics_html}</div>", unsafe_allow_html=True)
         
-        # 추천곡 접이식 레이아웃
         with st.expander("🗂️ 추천 리스트 및 단축키", expanded=False):
             for p_song in track["playlist"]:
                 st.markdown(f"▶️ [{p_song['title']}]({f'https://www.youtube.com/watch?v={p_song['id']}'}) - {p_song['artist']}")
@@ -149,34 +163,39 @@ with left_col:
             export_url = f"https://www.youtube.com/watch_videos?video_ids={','.join(all_ids)}"
             st.link_button("🚀 YouTube 재생목록 연동 생성", export_url, use_container_width=True)
     else:
-        st.info("💡 우측 챗봇에게 음악 무드나 상황을 던져보세요! 이 자리에 한눈에 들어오는 컴팩트 음악 재생 허브가 박히게 됩니다.")
+        st.info("💡 우측 메신저에 음악 무드나 상황을 메시지로 톡 보내보세요! 이 자리에 컴팩트 음악 재생 대시보드가 생성됩니다.")
     st.markdown('</div>', unsafe_allow_html=True)
 
-# --- 2. 우측 영역: Gemini 독립형 챗 UI (대화창만 따로 스크롤) ---
+# --- 2. 우측 영역: 핸드폰 카카오톡 스타일 테두리 챗 UI ---
 with right_col:
-    st.subheader("💬 Gemini Music Digging Agent")
+    st.subheader("💬 Gemini Messenger")
     
-    # 별도 스크롤 박스로 대화 내용들만 가둠
-    st.markdown('<div class="chat-scroll-area">', unsafe_allow_html=True)
+    # 둥근 모서리 스마트폰 모양 묶음 박스 시작
+    st.markdown('<div class="phone-chat-box">', unsafe_allow_html=True)
+    
+    # 내부 대화 전용 스크롤 레이어
+    st.markdown('<div class="chat-scroll-inside">', unsafe_allow_html=True)
     for msg in st.session_state.messages:
         with st.chat_message(msg["role"]):
             st.markdown(msg["content"])
-    st.markdown('</div>', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True) # 내부 대화창 닫기
     
-    # 유저 대화창 입력란을 하단에 단독 배치
-    if user_input := st.chat_input("원하는 무드, 가사 느낌, 혹은 장르를 입력하세요..."):
+    # 박스 내 하단에 자연스럽게 자리 잡도록 유저 대화창 입력란을 여기에 배치
+    if user_input := st.chat_input("에이전트에게 톡 보내기..."):
         st.session_state.messages.append({"role": "user", "content": user_input})
         st.rerun()
+        
+    st.markdown('</div>', unsafe_allow_html=True) # 스마트폰 메인 프레임 박스 닫기
 
 # --- 비동기 백엔드 오케스트레이션 로직 ---
 if st.session_state.messages[-1]["role"] == "user":
     user_input = st.session_state.messages[-1]["content"]
     
-    with st.spinner("🧠 Gemini 디깅 분석 중..."):
+    with st.spinner("🧠 톡 확인 후 디깅 분석 중..."):
         ai_data = dig_music_with_gemini(user_input)
         
     if ai_data:
-        with st.spinner("🎬 매칭 미디어 트래킹 중..."):
+        with st.spinner("🎬 음악 영상 매칭 중..."):
             main_video = get_youtube_video_via_api(ai_data["search_keyword"])
             
             playlist_tracks = []
@@ -204,7 +223,7 @@ if st.session_state.messages[-1]["role"] == "user":
                     "playlist": playlist_tracks
                 }
                 
-                reply = f"🤖 **[{ai_data['genre']}]** 무드의 음악을 아카이빙했습니다! 왼쪽 대시보드 허브에서 재생해 보세요."
+                reply = f"🤖 **[{ai_data['genre']}]** 무드의 노래를 보냈습니다! 왼쪽 재생 허브를 터치해 확인해 보세요."
                 st.session_state.messages.append({"role": "assistant", "content": reply})
                 st.rerun()
     else:
